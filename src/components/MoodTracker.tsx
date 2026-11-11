@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Check } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
@@ -13,28 +14,34 @@ interface MoodEntry {
 }
 
 const MOODS = [
-  { value: 1, emoji: "😔", label: "Rough" },
-  { value: 2, emoji: "😕", label: "Meh" },
-  { value: 3, emoji: "😐", label: "Okay" },
-  { value: 4, emoji: "🙂", label: "Good" },
-  { value: 5, emoji: "😄", label: "Great" },
+  { value: 1, label: "Rough" },
+  { value: 2, label: "Meh" },
+  { value: 3, label: "Okay" },
+  { value: 4, label: "Good" },
+  { value: 5, label: "Great" },
 ];
 
+// Selected-state styling for each mood pill.
 const MOOD_COLORS: Record<number, string> = {
-  1: "text-red-400 border-red-500/40 bg-red-500/10",
-  2: "text-orange-400 border-orange-500/40 bg-orange-500/10",
-  3: "text-yellow-400 border-yellow-500/40 bg-yellow-500/10",
-  4: "text-blue-400 border-blue-500/40 bg-blue-500/10",
-  5: "text-emerald-400 border-emerald-500/40 bg-emerald-500/10",
+  1: "text-rose-600 dark:text-rose-400 border-rose-500/50 bg-rose-500/10",
+  2: "text-orange-600 dark:text-orange-400 border-orange-500/50 bg-orange-500/10",
+  3: "text-amber-600 dark:text-amber-400 border-amber-500/50 bg-amber-500/10",
+  4: "text-lime-700 dark:text-lime-400 border-lime-500/50 bg-lime-500/10",
+  5: "text-emerald-600 dark:text-emerald-400 border-emerald-500/50 bg-emerald-500/10",
 };
 
+// Solid color: used for the dot and the 14-day bars.
 const MOOD_BAR: Record<number, string> = {
-  1: "bg-red-500",
+  1: "bg-rose-500",
   2: "bg-orange-500",
-  3: "bg-yellow-500",
-  4: "bg-blue-500",
+  3: "bg-amber-500",
+  4: "bg-lime-500",
   5: "bg-emerald-500",
 };
+
+function MoodDot({ mood, className }: { mood: number; className?: string }) {
+  return <span className={cn("inline-block h-2 w-2 shrink-0 rounded-full", MOOD_BAR[mood], className)} />;
+}
 
 function getLast14Days(): string[] {
   return Array.from({ length: 14 }, (_, i) => {
@@ -85,19 +92,21 @@ export function MoodTracker() {
       <Card>
         <CardContent className="pt-5 space-y-4">
           <p className="text-sm font-medium">How are you feeling today?</p>
-          <div className="flex gap-3 justify-center">
-            {MOODS.map(m => (
-              <button key={m.value} onClick={() => setSelected(m.value)}
-                className={cn("flex flex-col items-center gap-1.5 rounded-xl border p-3 transition-all",
-                  selected === m.value
-                    ? MOOD_COLORS[m.value]
-                    : "border-border hover:border-border/80 hover:bg-secondary",
-                  todayEntry?.mood === m.value && !selected && MOOD_COLORS[m.value]
-                )}>
-                <span className="text-2xl leading-none">{m.emoji}</span>
-                <span className="text-xs font-medium">{m.label}</span>
-              </button>
-            ))}
+          <div className="flex flex-wrap gap-2 justify-center">
+            {MOODS.map(m => {
+              const active = selected === m.value || (!selected && todayEntry?.mood === m.value);
+              return (
+                <button key={m.value} onClick={() => setSelected(m.value)} aria-pressed={active}
+                  className={cn("flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-all",
+                    active
+                      ? MOOD_COLORS[m.value]
+                      : "border-border text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  )}>
+                  <MoodDot mood={m.value} className={cn(!active && "opacity-70")} />
+                  {m.label}
+                </button>
+              );
+            })}
           </div>
 
           {(selected ?? todayEntry) && (
@@ -107,12 +116,14 @@ export function MoodTracker() {
                 minHeightClass="min-h-[80px]" />
               <div className="flex items-center justify-between">
                 {todayEntry && !selected && (
-                  <span className="text-xs text-muted-foreground">
-                    Logged at {new Date().toLocaleDateString()} · {MOODS.find(m => m.value === todayEntry.mood)?.emoji}
+                  <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    Logged at {new Date().toLocaleDateString()} ·
+                    <MoodDot mood={todayEntry.mood} />
+                    {MOODS.find(m => m.value === todayEntry.mood)?.label}
                   </span>
                 )}
                 <Button size="sm" onClick={save} disabled={!selected} className={cn(!selected && "hidden")}>
-                  {saved ? "✓ Logged" : "Log Mood"}
+                  {saved ? <><Check className="h-4 w-4" /> Logged</> : "Log Mood"}
                 </Button>
               </div>
             </>
@@ -130,8 +141,8 @@ export function MoodTracker() {
                 const height = e ? `${(e.mood / 5) * 100}%` : "10%";
                 return (
                   <div key={d} className="flex-1 flex flex-col items-center gap-1 group relative">
-                    <div className="absolute -top-7 left-1/2 -translate-x-1/2 hidden group-hover:flex bg-popover border rounded-md px-2 py-1 text-xs whitespace-nowrap z-10">
-                      {e ? `${MOODS.find(m => m.value === e.mood)?.emoji ?? ""} ${MOODS.find(m => m.value === e.mood)?.label ?? ""}` : "No entry"}
+                    <div className="absolute -top-7 left-1/2 -translate-x-1/2 hidden group-hover:flex items-center gap-1.5 bg-popover border rounded-md px-2 py-1 text-xs whitespace-nowrap z-10">
+                      {e ? <><MoodDot mood={e.mood} />{MOODS.find(m => m.value === e.mood)?.label}</> : "No entry"}
                     </div>
                     <div className="w-full flex items-end justify-center h-full">
                       <div

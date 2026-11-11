@@ -1,5 +1,8 @@
 import { useState } from "react";
-import { Check, Flame, Plus, Trash2, X } from "lucide-react";
+import {
+  BookOpen, Check, Droplet, Dumbbell, Flame, Flower2, Footprints, Leaf, Moon, PenLine, Plus,
+  Salad, Target, Trash2, X, type LucideIcon,
+} from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,14 +11,40 @@ import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { today } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
+const HABIT_ICONS = {
+  strength: { icon: Dumbbell, label: "Strength" },
+  reading: { icon: BookOpen, label: "Reading" },
+  running: { icon: Footprints, label: "Running" },
+  water: { icon: Droplet, label: "Water" },
+  mindfulness: { icon: Flower2, label: "Mindfulness" },
+  nutrition: { icon: Salad, label: "Nutrition" },
+  sleep: { icon: Moon, label: "Sleep" },
+  writing: { icon: PenLine, label: "Writing" },
+  goal: { icon: Target, label: "Goal" },
+  nature: { icon: Leaf, label: "Nature" },
+} satisfies Record<string, { icon: LucideIcon; label: string }>;
+
+type HabitIconKey = keyof typeof HABIT_ICONS;
+
+// Habits saved before the switch to icons stored an emoji instead of an icon key.
+const LEGACY_EMOJI_TO_ICON: Record<string, HabitIconKey> = {
+  "💪": "strength", "📚": "reading", "🏃": "running", "💧": "water", "🧘": "mindfulness",
+  "🥗": "nutrition", "😴": "sleep", "✍️": "writing", "🎯": "goal", "🌿": "nature",
+};
+
 interface Habit {
   id: string;
   name: string;
-  emoji: string;
+  icon?: HabitIconKey;
+  /** @deprecated legacy field from before icons; read-only fallback */
+  emoji?: string;
   completedDates: string[];
 }
 
-const EMOJIS = ["💪", "📚", "🏃", "💧", "🧘", "🥗", "😴", "✍️", "🎯", "🌿"];
+function habitIcon(h: Habit): LucideIcon {
+  const key = h.icon ?? (h.emoji ? LEGACY_EMOJI_TO_ICON[h.emoji] : undefined);
+  return (key && HABIT_ICONS[key]?.icon) || Target;
+}
 
 function calcStreak(dates: string[]): number {
   if (!dates.length) return 0;
@@ -47,7 +76,7 @@ function getLast7Days(): string[] {
 export function HabitTracker() {
   const [habits, setHabits] = useLocalStorage<Habit[]>("habits", []);
   const [newName, setNewName] = useState("");
-  const [selectedEmoji, setSelectedEmoji] = useState("💪");
+  const [selectedIcon, setSelectedIcon] = useState<HabitIconKey>("strength");
   const [showAdd, setShowAdd] = useState(false);
   const t = today();
   const last7 = getLast7Days();
@@ -62,7 +91,7 @@ export function HabitTracker() {
 
   const add = () => {
     if (!newName.trim()) return;
-    setHabits([...habits, { id: crypto.randomUUID(), name: newName.trim(), emoji: selectedEmoji, completedDates: [] }]);
+    setHabits([...habits, { id: crypto.randomUUID(), name: newName.trim(), icon: selectedIcon, completedDates: [] }]);
     setNewName("");
     setShowAdd(false);
   };
@@ -88,12 +117,19 @@ export function HabitTracker() {
         <Card className="border-primary/30 bg-primary/5">
           <CardContent className="pt-5 space-y-3">
             <div className="flex flex-wrap gap-2">
-              {EMOJIS.map(e => (
-                <button key={e} onClick={() => setSelectedEmoji(e)}
-                  className={cn("text-xl p-1.5 rounded-lg transition-colors", selectedEmoji === e ? "bg-primary/30" : "hover:bg-secondary")}>
-                  {e}
-                </button>
-              ))}
+              {(Object.keys(HABIT_ICONS) as HabitIconKey[]).map(key => {
+                const { icon: Icon, label } = HABIT_ICONS[key];
+                const active = selectedIcon === key;
+                return (
+                  <button key={key} onClick={() => setSelectedIcon(key)} title={label} aria-label={label} aria-pressed={active}
+                    className={cn("flex h-9 w-9 items-center justify-center rounded-lg border transition-colors",
+                      active
+                        ? "border-primary/50 bg-primary/15 text-primary"
+                        : "border-transparent text-muted-foreground hover:bg-secondary hover:text-foreground")}>
+                    <Icon className="h-4 w-4" />
+                  </button>
+                );
+              })}
             </div>
             <div className="flex gap-2">
               <Input value={newName} onChange={e => setNewName(e.target.value)}
@@ -112,6 +148,7 @@ export function HabitTracker() {
         {habits.map(h => {
           const done = h.completedDates.includes(t);
           const streak = calcStreak(h.completedDates);
+          const Icon = habitIcon(h);
           return (
             <Card key={h.id} className={cn("transition-all", done && "border-primary/40 bg-primary/5")}>
               <CardContent className="py-3 px-4">
@@ -121,7 +158,9 @@ export function HabitTracker() {
                       done ? "border-primary bg-primary text-white" : "border-border hover:border-primary/60")}>
                     {done && <Check className="h-4 w-4" />}
                   </button>
-                  <span className="text-xl">{h.emoji}</span>
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <Icon className="h-4 w-4" />
+                  </div>
                   <div className="flex-1 min-w-0">
                     <p className={cn("font-medium leading-none", done && "line-through text-muted-foreground")}>{h.name}</p>
                     <div className="flex items-center gap-3 mt-1.5">
@@ -140,7 +179,7 @@ export function HabitTracker() {
                       )}
                     </div>
                   </div>
-                  {streak >= 7 && <Badge variant="warning">🔥 On fire</Badge>}
+                  {streak >= 7 && <Badge variant="warning" className="gap-1"><Flame className="h-3 w-3" />On fire</Badge>}
                   <Button variant="ghost" size="icon" onClick={() => remove(h.id)}
                     className="opacity-0 group-hover:opacity-100 hover:opacity-100 text-muted-foreground hover:text-foreground h-7 w-7">
                     <Trash2 className="h-3.5 w-3.5" />
