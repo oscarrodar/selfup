@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { today } from "@/lib/utils";
 import { cn } from "@/lib/utils";
@@ -102,9 +102,9 @@ export function MoodTracker() {
 
           {(selected ?? todayEntry) && (
             <>
-              <Textarea value={note} onChange={e => setNote(e.target.value)}
+              <RichTextEditor value={note} onChange={setNote} variant="compact"
                 placeholder="Optional note… (what influenced your mood?)"
-                className="min-h-[80px] text-sm" />
+                minHeightClass="min-h-[80px]" />
               <div className="flex items-center justify-between">
                 {todayEntry && !selected && (
                   <span className="text-xs text-muted-foreground">

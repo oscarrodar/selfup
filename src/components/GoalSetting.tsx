@@ -3,6 +3,8 @@ import { Plus, X, Minus, ChevronUp } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { RichTextEditor, RichTextView } from "@/components/ui/rich-text-editor";
+import { toPlainText } from "@/lib/rich-text";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
@@ -39,7 +41,7 @@ export function GoalSetting() {
     setGoals([...goals, {
       id: crypto.randomUUID(),
       title: form.title.trim(),
-      description: form.description.trim(),
+      description: toPlainText(form.description).trim() ? form.description : "",
       current: 0,
       target: Number(form.target),
       unit: form.unit.trim() || "units",
@@ -78,7 +80,8 @@ export function GoalSetting() {
         <Card className="border-primary/30 bg-primary/5">
           <CardContent className="pt-5 space-y-3">
             <Input placeholder="Goal title *" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />
-            <Input placeholder="Description (optional)" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
+            <RichTextEditor value={form.description} onChange={html => setForm(f => ({ ...f, description: html }))}
+              variant="compact" placeholder="Description (optional)" minHeightClass="min-h-[64px]" className="bg-background" />
             <div className="flex gap-2">
               <Input placeholder="Target *" type="number" min="1" value={form.target} onChange={e => setForm({ ...form, target: e.target.value })} className="w-32" />
               <Input placeholder="Unit (km, books…)" value={form.unit} onChange={e => setForm({ ...form, unit: e.target.value })} />
@@ -114,7 +117,7 @@ export function GoalSetting() {
                       <h3 className="font-semibold leading-none">{g.title}</h3>
                       {done && <Badge variant="success">Done!</Badge>}
                     </div>
-                    {g.description && <p className="text-xs text-muted-foreground mt-1">{g.description}</p>}
+                    {g.description && <RichTextView value={g.description} className="text-xs text-muted-foreground mt-1" />}
                   </div>
                   <Button variant="ghost" size="icon" onClick={() => remove(g.id)} className="h-6 w-6 text-muted-foreground shrink-0">
                     <X className="h-3 w-3" />
