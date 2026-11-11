@@ -2,7 +2,8 @@ import { useState } from "react";
 import { ChevronLeft, ChevronRight, BookOpen, Sparkles } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { toPlainText } from "@/lib/rich-text";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { today } from "@/lib/utils";
 import { cn } from "@/lib/utils";
@@ -37,6 +38,7 @@ export function Journal() {
   const t = today();
   const isToday = currentDate === t;
   const text = entries[currentDate] ?? "";
+  const plain = toPlainText(text);
 
   const update = (val: string) => {
     setEntries({ ...entries, [currentDate]: val });
@@ -48,8 +50,8 @@ export function Journal() {
     setTimeout(() => setSaved(false), 2000);
   };
 
-  const allDates = Object.keys(entries).filter(k => entries[k].trim()).sort().reverse();
-  const hasEntry = (d: string) => !!(entries[d]?.trim());
+  const allDates = Object.keys(entries).filter(k => toPlainText(entries[k]).trim()).sort().reverse();
+  const hasEntry = (d: string) => !!toPlainText(entries[d] ?? "").trim();
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -85,18 +87,18 @@ export function Journal() {
             </div>
           )}
 
-          <Textarea
+          <RichTextEditor
             value={text}
-            onChange={e => update(e.target.value)}
+            onChange={update}
             placeholder={isToday ? "Write your thoughts…" : "No entry for this day."}
-            className="min-h-[200px] text-sm leading-relaxed"
+            className="leading-relaxed"
             readOnly={!isToday}
           />
 
           {isToday && (
             <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">{text.length} chars · {text.split(/\s+/).filter(Boolean).length} words</span>
-              <Button size="sm" variant={saved ? "secondary" : "default"} onClick={save} disabled={!text.trim()}>
+              <span className="text-xs text-muted-foreground">{plain.length} chars · {plain.split(/\s+/).filter(Boolean).length} words</span>
+              <Button size="sm" variant={saved ? "secondary" : "default"} onClick={save} disabled={!plain.trim()}>
                 {saved ? "✓ Saved" : "Save Entry"}
               </Button>
             </div>
@@ -113,7 +115,7 @@ export function Journal() {
                 className={cn("text-left rounded-lg border px-3 py-2 transition-colors hover:border-primary/40",
                   currentDate === d ? "border-primary/60 bg-primary/10" : "border-border bg-card")}>
                 <p className="text-xs font-medium">{new Date(d + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p>
-                <p className="text-xs text-muted-foreground truncate mt-0.5">{entries[d]?.slice(0, 40)}…</p>
+                <p className="text-xs text-muted-foreground truncate mt-0.5">{toPlainText(entries[d] ?? "").slice(0, 40)}…</p>
               </button>
             ))}
           </div>
